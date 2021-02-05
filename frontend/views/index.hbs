@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+
+    <link rel="icon" href="/logo.png">
+    <link rel="stylesheet" href="/css/jquery.modal.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="/js/vendor/jquery-3.5.1.min.js"></script>
+    <script src="/js/vendor/jquery.modal.min.js"></script>
+    <script src="/js/vendor/jquery.caret.js"></script>
+</head>
+<body>
+    <h1 class="project-name"></h1>
+    <div class="start-buttons">
+        <a id="start-load" href="#load-project">Load Project</a><br>
+        <span dummy="true" id="start-start">Start Project</span><br>
+        <a id="start-about" href="#about-project">About</a><br>
+    </div>
+    <div class="start-input">
+        <input type="text" placeholder="/Users/User/Documents/Twine/Stories/Story.html" id="path-input" name="path">
+        <a id="start-input-submit" href="#submit-form">&#8594;</a>
+    </div>
+    <div class="scheme">
+        <!-- Draggable DIV -->
+    </div>
+    <br><br>
+    <div id="passage-edit-modal" class="modal">
+        <input type="text" id="passage-name" name="name"><a href="#close-modal" rel="modal:close" class="passage-edit-close">X</a>
+        <div class="passage-tags">[here will be tags in next versions]</div>
+        <div class="passage-edit">
+            <textarea class="passage-body"></textarea>
+        </div>
+        <div class="passage-suggestions"></div>
+    </div>
+    <div id="close-modal" class="modal">
+        <span>Do you really want to close a project?</span>
+        <span>Unsaved changes won't be saved.</span><br>
+        <button class="close-submit">Yes</button>
+    </div>
+    <div id="about-modal" class="modal">
+        <h2>About</h2>
+        <div><span class="key">Twine Editor Project</span></div>
+        <div><span class="key">version:</span> 0.1</div>
+        <div><span class="key">author:</span> laruss (<a href="https://github.com/laruss">GitHub</a>)</div>
+        <div>Project was created as editor to 
+            <a href="https://twinery.org/">Twine</a>
+            stories format.
+            </div>
+        <div>For now is only supported format:
+            <a href="https://www.motoslave.net/sugarcube/2/">SugarCube.</a>
+        </div>
+    </div>
+    <div class="ajax-message"></div>
+    <footer>
+        <a class="add-passage-button" href="#new-passage">+</a>
+        <div class="project-actions"></div>
+        <div class="game-actions">
+            <button id="close-project">X</button>
+            <button id="compile-project">Save Project</button>
+            <button id="run-project">Save&amp;Run</button>
+        </div>
+    </footer>
+
+    <script src="/js/main.js"></script>
+</body>
+</html>
