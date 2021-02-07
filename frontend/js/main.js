@@ -20,7 +20,7 @@ const ajaxGetPassages = () => {
             responseMessage('Done', true)
             console.log("Result of GET /passages: ", res);
             res.elements.forEach((el) => {
-                el.connections = getPassageConnections(el)
+                el.connections = []; //getPassageConnections(el)
             })
             localStorage.setItem("passages", JSON.stringify(res.elements));
 

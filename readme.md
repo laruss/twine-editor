@@ -21,3 +21,8 @@ There is no TAGS for now.
 There are some bugs in Editor textfield, which will be removed in the next versions. If you find any one with steps of reproduce, you can mail me at konstantinchist@yandex.ru.
 There is no "launch passage" button for now.
 You cannot start a new Project via Editor.
+# Credits
+- jquery-3.5.1.min.js
+- [jquery.caret.js](https://github.com/acdvorak/jquery.caret) 
+- [jquery.modal.min.js](https://github.com/kylefox/jquery-modal)
+- [localStorageDB.js](https://github.com/DVLP/localStorageDB)
