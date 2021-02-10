@@ -8,21 +8,74 @@ const responseMessage = (message, isSuccess) => {
     $('.ajax-message').delay(2000).fadeOut('slow');
 }
 
+// lets have a constanta, where to store all of passages instead of LS
+// this constanta will be filled with page loading or response from ajaxGetPassagess
+const storage = {
+    // fills in storage from backend
+    fill: function (data) {
+        for (item in data) {
+            this.data[item] = data[item];
+        };
+    },
+    // saves storage to DB
+    save: function () {
+        for (key in this.data) {
+            var data = this.data[key];
+            if (typeof data === 'object') {
+                data = JSON.stringify(data);
+            };
+            ldb.set(key, data);
+        }
+    },
+    // loads storage from DB
+    loadFromDB: async function () {
+        const keys = ['attributes', 'passages', 'projectDir', 'projectName', 'projectPath'];
+
+        const promises = keys.map((key) => {
+            return new Promise((resolve) => {
+                ldb.get(key, function (val) {
+                    try {
+                        val = JSON.parse(val);
+                    } catch (e) {
+                        // pass
+                    };
+                    storage.data[key] = val;
+
+                    resolve();
+                });
+            })
+        });
+        return Promise
+            .all(promises)
+            .then(() => storage.data);
+    },
+    clear: function () {
+        this.data = {};
+        const keys = ['attributes', 'passages', 'projectDir', 'projectName', 'projectPath'];
+        keys.map((key) => {
+            ldb.set(key, undefined);
+        })
+    },
+    data: {}
+};
+
 const ajaxGetPassages = () => {
     $.ajax({
         url: '/passages',
         type: 'get',
         headers: {
             "Content-Type": "application/json",
-            "path": localStorage.getItem("projectPath")
+            "path": storage.data.projectPath
         },
         success: (res) => {
             responseMessage('Done', true)
+            storage.fill({passages: res.elements});
+            storage.save();
             console.log("Result of GET /passages: ", res);
             res.elements.forEach((el) => {
                 el.connections = []; //getPassageConnections(el)
             })
-            localStorage.setItem("passages", JSON.stringify(res.elements));
+            storage.save();
 
             showPassagesControl();
         },
@@ -41,9 +94,9 @@ const ajaxGetPassages = () => {
 
 const ajaxPostPassages = () => {
     const data = JSON.stringify({
-        elements: JSON.parse(localStorage.getItem("passages"))
+        elements: storage.data.passages
     })
-    const attributes = JSON.parse(localStorage.getItem("attributes"));
+    const attributes = storage.data.attributes;
     const { name, startnode, creator, ifid, zoom, format, options, hidden } = attributes
     const headers = {
         name,
@@ -56,9 +109,9 @@ const ajaxPostPassages = () => {
         "format-version": attributes["format-version"],
         options,
         hidden,
-        "path": localStorage.getItem("projectPath"),
-        "projectDir": localStorage.getItem("projectDir"),
-        "projectName": localStorage.getItem("projectName"),
+        "path": storage.data.projectPath,
+        "projectDir": storage.data.projectDir,
+        "projectName": storage.data.projectName,
         "Content-Type": "application/json"
     };
 
@@ -99,10 +152,7 @@ const ajaxProjectInit = () => {
             $('.scheme').empty();
             console.log("Result of POST /init/project: ", res);
             responseMessage('Done', true);
-            for (item in res) {
-                if (item === 'attributes') localStorage.setItem(item, JSON.stringify(res[item]))
-                else localStorage.setItem(item, res[item]);
-            }
+            storage.fill(res);
             setProjectName();
             $('footer').fadeIn();
             ajaxGetPassages();
@@ -135,12 +185,12 @@ $('#close-project').on('click', closeProject);
 // SCHEME
 
 $('.close-submit').on('click', () => {
-    localStorage.clear();
+    storage.clear();
     location.reload();
 })
 
 const setProjectName = () => {
-    const name = localStorage.getItem('projectName');
+    const name = storage.data.projectName;
     if (name) {
         $('.project-name').text(name.toUpperCase() + ' PROJECT').css('color', 'rgba(0, 0, 0, 0.1)')
     } else {
@@ -149,13 +199,14 @@ const setProjectName = () => {
 }
 
 // on load checking if we have a local storage passages loaded
-$( window ).on( "load", () => {
-    const passages = JSON.parse(localStorage.getItem("passages"));
-    setProjectName()
-    if (passages) {
-        showPassagesControl();
-    }
-    else showProjectsControl();
+$( window ).on( "load", async () => {
+    storage.loadFromDB().then((val) => {
+        setProjectName();
+        if (val.passages) {
+            showPassagesControl();
+        }
+        else showProjectsControl();
+    });
 } );
 
 (function($) {
@@ -218,9 +269,8 @@ const showProjectsControl = () => {
 
 // check passage name for identity
 const ifNameIsLegal = (name, pasObj) => {
-    const passages = JSON.parse(localStorage.getItem("passages"));
     var result = true;
-    for (pas of passages) {
+    for (pas of storage.data.passages) {
         if (pas.name === name && pas.pid !== pasObj.pid) {
             console.log(pas.pid, pasObj.pid);
             result = false;
@@ -232,14 +282,11 @@ const ifNameIsLegal = (name, pasObj) => {
 
 // delete passage
 const deletePassage = (pid) => {
-    pid = parseInt(pid)
-    const passages = JSON.parse(localStorage.getItem("passages"));
-    passages.splice(pid-1, 1);
-    recalculatePIDs(passages);
-    $($('scheme-item')[pid-1]).remove();
-    console.log(passages);
-    localStorage.setItem("passages", JSON.stringify(passages));
-    location.reload();
+    pid = parseInt(pid);
+    storage.data.passages.splice(pid-1, 1);
+    recalculatePIDs(storage.data.passages);
+    $($('.scheme-item')[pid-1]).remove();
+    storage.save();
 };
 
 // recalculate PIDS after deleting 1 of them
@@ -253,9 +300,8 @@ const recalculatePIDs = (passages) => {
 
 // add new passage
 const addNewPassage = () => {
-    const passages = JSON.parse(localStorage.getItem("passages"));
     const passageName = "Untitled Passage ";
-    const pid = (passages.length + 1).toString();
+    const pid = (storage.data.passages.length + 1).toString();
     const name = passageName + pid;
     heightC = $(window).scrollTop() + Math.floor($(window).height() / 2);
     widthC = $(window).scrollLeft() + Math.floor($(window).width() / 2);
@@ -270,8 +316,8 @@ const addNewPassage = () => {
         connections: []
     };
 
-    passages.push(newPas);
-    localStorage.setItem("passages", JSON.stringify(passages));
+    storage.data.passages.push(newPas);
+    storage.save();
     console.log(newPas);
     addNewPassageToPage(newPas);
 };
@@ -335,28 +381,23 @@ const addNewPassageToPage = (pas) => {
 }
 
 const fillSchemaItems = () => {
-    const passages = JSON.parse(localStorage.getItem("passages"));
-    passages.forEach((pas) => {
+    storage.data.passages.forEach((pas) => {
         addNewPassageToPage(pas);
     });
     calculateSchemeSize();
 };
 
 const changeSchemaItemPosition = (el) => {
-    const passages = JSON.parse(localStorage.getItem("passages"));
     const coords = `${parseInt($(el).css('left'))},${parseInt($(el).css('top'))}`;
-
     const iter = parseInt($(el).attr('pid')) - 1;
-    passages[iter].position = coords;
+    storage.data.passages[iter].position = coords;
 
-    localStorage.setItem("passages", JSON.stringify(passages));
-    // console.log(coords);
+    storage.save();
 };
 
 const clickOnSchemaItem = (el) => {
-    const passages = JSON.parse(localStorage.getItem("passages"));
     const iter = parseInt($(el).attr('pid')) - 1;
-    showEdit(passages[iter]);
+    showEdit(storage.data.passages[iter]);
 };
 
 // TODO: search for refs in passages
@@ -453,12 +494,11 @@ const codeSnippets = [
 
 
 const savePassage = (passageAsObj) => {
-    const passages = JSON.parse(localStorage.getItem("passages"));
     const iter = parseInt(passageAsObj.pid) - 1
     $($('.scheme-item-name')[iter]).text(passageAsObj.name);
-    passages[iter] = passageAsObj
+    storage.data.passages[iter] = passageAsObj
     passageAsObj.connections = getPassageConnections(passageAsObj)
-    localStorage.setItem("passages", JSON.stringify(passages));
+    storage.save();
 }
 
 $(document).on('click', '.jquery-modal', (e) => {
