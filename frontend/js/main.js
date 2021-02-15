@@ -68,12 +68,13 @@ const ajaxGetPassages = () => {
             "path": storage.data.projectPath
         },
         success: (res) => {
-            responseMessage('Done', true)
+            responseMessage('Done', true);
+
             storage.fill({passages: res.elements});
             storage.save();
             console.log("Result of GET /passages: ", res);
             res.elements.forEach((el) => {
-                el.connections = []; //getPassageConnections(el)
+                el.connections = getPassageConnections(el);
             })
             storage.save();
 
@@ -135,6 +136,33 @@ const ajaxPostPassages = () => {
     });
 };
 
+const ajaxRunProject = () => {
+    ajaxPostPassages();
+    const path = storage.data.projectPath;
+    $.ajax({
+        url: '/runStory',
+        type: 'post',
+        headers: {
+            "Content-Type": "application/json",
+            path
+        },
+        success: (res) => {
+            $('.scheme').empty();
+            console.log("Result of POST /init/project: ", res);
+        },
+        error: (req, status, error) => {
+            if (error) {
+                const res = JSON.parse(req.responseText);
+                var error = 'error';
+                if (res.error) error = res.error;
+                responseMessage(error, false);
+                console.log(req.responseText);
+                console.log(status);
+            };
+        }
+    })
+}
+
 const ajaxProjectInit = () => {
     const path = $('#path-input').val();
     const data = JSON.stringify({path});
@@ -180,6 +208,7 @@ $('#start-input-submit').on('click', ajaxProjectInit);
 $('#start-load').on('click', () => { $('.start-input').fadeIn() })
 $('#start-about').on('click', () => {$('#about-modal').modal();});
 $('#compile-project').on('click', ajaxPostPassages);
+$('#run-project').on('click', ajaxRunProject);
 $('#close-project').on('click', closeProject);
 
 // SCHEME
@@ -283,8 +312,14 @@ const ifNameIsLegal = (name, pasObj) => {
 // delete passage
 const deletePassage = (pid) => {
     pid = parseInt(pid);
+    deletePassageConnections(storage.data.passages[pid-1]);
     storage.data.passages.splice(pid-1, 1);
     recalculatePIDs(storage.data.passages);
+    storage.data.passages.forEach((el) => {
+        deletePassageConnections(el);
+        getPassageConnections(el);
+        renderPassageConnections(el);
+    })
     $($('.scheme-item')[pid-1]).remove();
     storage.save();
 };
@@ -336,6 +371,10 @@ const calculateSchemeSize = () => {
     $('.scheme')
         .css('height', (lastElHeight + 300).toString() + 'px')
         .css('width', (lastElWidth + 300).toString() + 'px');
+    $('svg').attr({
+        width: lastElWidth + 300,
+        height: lastElHeight + 300
+    })
 }
 
 // checks if it's drag or click
@@ -383,15 +422,24 @@ const addNewPassageToPage = (pas) => {
 const fillSchemaItems = () => {
     storage.data.passages.forEach((pas) => {
         addNewPassageToPage(pas);
+        renderPassageConnections(pas);
     });
     calculateSchemeSize();
 };
 
 const changeSchemaItemPosition = (el) => {
-    const coords = `${parseInt($(el).css('left'))},${parseInt($(el).css('top'))}`;
-    const iter = parseInt($(el).attr('pid')) - 1;
-    storage.data.passages[iter].position = coords;
-
+    const leftPos = parseInt($(el).css('left'));
+    const topPos = parseInt($(el).css('top'));
+    const coords = `${leftPos},${topPos}`;
+    const pid = parseInt($(el).attr('pid'));
+    storage.data.passages[pid-1].position = coords;
+    $('svg').children('line').each(function (i) {
+        if (parseInt($(this).attr('pid1')) == pid) {
+            $(this).attr({ x1: `${leftPos+50}`, y1: `${topPos+50}` });
+        } else if (parseInt($(this).attr('pid2')) == pid) {
+            $(this).attr({ x2: `${leftPos+50}`, y2: `${topPos+50}` });
+        };
+    });
     storage.save();
 };
 
@@ -401,11 +449,13 @@ const clickOnSchemaItem = (el) => {
 };
 
 // TODO: search for refs in passages
+// returns pids of connected passages
 const getPassageConnections = (passageAsObj) => {
     const commonRegex = /\[\[.*\]\]/gm; // search for [[*]]
     const coupleRegex = /\]\[/gm; //search for ][ in case of [[*][*]]
     const refRegex = /\|.*\]/gm; // search for |*] in case of [[*|*]]
     var found = passageAsObj.text.match(commonRegex);
+    const foundPIDS = [];
     if (found) {
         for (i in found) {
             const foundCouple = found[i].match(coupleRegex);
@@ -415,9 +465,47 @@ const getPassageConnections = (passageAsObj) => {
             else found[i] = found[i].replace(/\]\]/, '').replace(/\[\[/, '');
         };
     } else found = [];
-    return found
-}
+    storage.data.passages.forEach((pas) => {
+        if (found.includes(pas.name)) {
+            foundPIDS.push(parseInt(pas.pid));
+        };
+    });
+    return foundPIDS;
+};
 
+$('.scheme-connections').svg();
+var svg = $('.scheme-connections').svg('get'); 
+const renderPassageConnections = (passageAsObj) => {
+    const pid1 = parseInt(passageAsObj.pid);
+    const pPos = passageAsObj.position.split(',');
+    const pasCentrPos = [
+        parseInt(pPos[0]) + 50,
+        parseInt(pPos[1]) + 50
+    ];
+    const conCentrPositions = [];
+
+    passageAsObj.connections.forEach((cpid) => {
+        const cpos = storage.data.passages[cpid-1].position.split(',');
+        conCentrPositions.push([
+            parseInt(cpos[0]) + 50,
+            parseInt(cpos[1]) + 50,
+            cpid
+        ]);
+    });
+
+    conCentrPositions.forEach((pos) => {
+        svg.line(pasCentrPos[0], pasCentrPos[1], pos[0], pos[1], 
+            {stroke: 'black', strokeWidth: 1, pid1, pid2: pos[2]});
+    });
+};
+
+const deletePassageConnections = (passageAsObj) => {
+    $('svg').children('line').each(function (i) {
+        if (parseInt($(this).attr('pid1')) == passageAsObj.pid) {
+            $(this).remove();
+        };
+    });
+}
 
 // PASSAGE EDIT
 var textareaOldText = '';
@@ -544,16 +632,20 @@ const showEdit = (passageAsObj) => {
             $(this).css('border', 'black 1px solid');
             $('#passage-name').val(Math.random().toString(36).substring(5,7));
         }
-        if ($('#passage-name').val()) passageAsObj.name = $('#passage-name').val()
-        if (passageTextField.getText()) passageAsObj.text = passageTextField.getText()
+        if ($('#passage-name').val()) passageAsObj.name = $('#passage-name').val();
+        if (passageTextField.getText()) passageAsObj.text = passageTextField.getText();
         console.log(passageAsObj);
         savePassage(passageAsObj);
 
-        $('#passage-name').val('')
-        passageTextField.setText('')
+        deletePassageConnections(passageAsObj);
+        getPassageConnections(passageAsObj);
+        renderPassageConnections(passageAsObj);
+
+        $('#passage-name').val('');
+        passageTextField.setText('');
         $('.passage-suggestions').empty();
-        escButton.off('click')
-    })
+        escButton.off('click');
+    });
     $(document).keyup(function(e){
         if (e.which == 27) {
             if ($('#passage-name').val() !== '' || passageTextField.getText() !== '') escButton.click();
