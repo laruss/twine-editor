@@ -24,6 +24,7 @@ You cannot start a new Project via Editor.
 # Changes
 0.11:
 - changed localStorage to localStorageDB.js to fix Windows storage limitation
+
 0.12:
 - added connections between passages
 - button Save&Run
