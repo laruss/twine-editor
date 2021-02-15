@@ -1,4 +1,4 @@
-# TWINE EDITOR 0.11
+# TWINE EDITOR 0.12
 Twine editor - is editor to [Twine](https://twinery.org/) format stories, implemented as Node.js server + frontend in jQuery. Created for better experiance in editing Twine stories.
 # Installation
 1. Download project from GIT repository.
