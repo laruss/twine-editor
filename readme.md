@@ -28,7 +28,7 @@ You cannot start a new Project via Editor.
 0.12:
 - added connections between passages
 - button Save&Run
-- some info about system in log
+- added seperator for windows/unix systems
 # Credits
 - jquery-3.5.1.min.js
 - [jquery.caret.js](https://github.com/acdvorak/jquery.caret)

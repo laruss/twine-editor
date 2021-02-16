@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
 const hbs = require('hbs');
-const si = require('systeminformation');
 
 const apiRoute = require('./api')
 
@@ -29,11 +28,6 @@ app.get('/', (req, res) => {
     res.render('index', {
         title: 'Twine Editor'
     })
-})
-
-si.osInfo().then((osInfo) => {
-    app.set('os', osInfo.distro)
-    console.log(osInfo.distro);
 })
 
 app.listen(port, () => {

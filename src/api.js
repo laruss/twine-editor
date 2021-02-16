@@ -1,6 +1,7 @@
 const express = require('express')
 const chromeLauncher = require('chrome-launcher')
 const path = require('path');
+const si = require('systeminformation');
 
 const settingsJSON = require('./settings.json')
 
@@ -10,6 +11,20 @@ const { htmlPassageToObject, objectPassageToHTML } = require('./passages')
 
 
 const router = new express.Router()
+
+var seperator = {
+    val: "",
+    get: function () {
+        return this.val
+    },
+    set: function (val) {
+        this.val = val
+    }
+}
+si.osInfo().then((osInfo) => {
+    if (osInfo.distro.includes('Windows')) seperator.set('\\')
+    else seperator.set('/')
+})
 
 // from string HTML
 const getAttributesObject = (doc) => {
@@ -46,7 +61,7 @@ router.get('/test', (req, res) => {
 // body: {path: *pathToHTML*}
 router.post('/init/project', async (req, res) => {
     try {
-        const storyFileName = req.body.path.split('/').slice(-1)[0]
+        const storyFileName = req.body.path.split(seperator.get()).slice(-1)[0]
         const projectDir = req.body.path.replace(storyFileName, '')
         if (!storyFileName || storyFileName.indexOf('.html') < 0) res.status(400).send({error: 'Wrong path to file'})
 
