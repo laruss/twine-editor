@@ -52,10 +52,12 @@ const getContentAsString = (doc, type) => {
 }
 
 router.get('/test', (req, res) => {
-    const passageAsString = "<tw-passagedata pid=\"1\" name=\"Start\" tags=\"\" position=\"55,33\" size=\"100,100\">here will be cover and causion about the game</tw-passagedata>"
-    const it = htmlPassageToObject(passageAsString)
+    const it = "Hello, motherfucker!"
+    // const passageAsString = "<tw-passagedata pid=\"1\" name=\"Start\" tags=\"\" position=\"55,33\" size=\"100,100\">here will be cover and causion about the game</tw-passagedata>"
+    // const it = htmlPassageToObject(passageAsString)
     // const ti = objectPassageToHTML(it)
-    res.send(it)
+    res.json(it);
+    // res.send(it)
 })
 
 // body: {path: *pathToHTML*}

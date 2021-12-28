@@ -5,7 +5,7 @@ const hbs = require('hbs');
 const apiRoute = require('./api')
 
 const app = express()
-const port = 3000
+const port = 3001
 
 // define path for express confing
 const viewsPath = path.join(__dirname, '../frontend/views')
