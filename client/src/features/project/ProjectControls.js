@@ -15,7 +15,7 @@ export const ProjectControls = () => {
     const showPathForm = () => changePathFormState(true);
     const onPathInputChange = e => setProjectPath(e.target.value);
 
-    const onLoadProjectClick = () => {
+    const onLoadProjectClick = () => { 
         // TODO: add condition to check project path
         if (projectPath) {
             dispatch(projectLoaded(projectPath));
